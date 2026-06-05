@@ -39,14 +39,8 @@ export default function SignupPage() {
 
       if (profileError) throw profileError
 
-      // Sign them in immediately
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (signInError) throw signInError
-
+      // Supabase signUp automatically creates a session
+      // Just redirect to home
       router.push('/')
     } catch (err: any) {
       setError(err.message || 'Signup failed')
