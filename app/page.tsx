@@ -43,12 +43,10 @@ export default function Home() {
 
   useEffect(() => {
     if (authLoading) return
-
     if (!user) {
       router.push('/signup')
       return
     }
-
     fetchProfile()
     fetchPosts()
     fetchJoined()
@@ -62,7 +60,9 @@ export default function Home() {
       .select('name, handle')
       .eq('id', user.id)
       .single()
-    setGreeting(data?.name?.split(' ')[0] || data?.handle || user.email?.split('@')[0] || '')
+    setGreeting(
+      data?.name?.split(' ')[0] || data?.handle || user.email?.split('@')[0] || '',
+    )
   }
 
   async function fetchPosts() {
@@ -80,7 +80,6 @@ export default function Home() {
       setLoading(false)
       return
     }
-
     setPosts((data as unknown as Post[]) || [])
     setLoading(false)
   }
@@ -91,7 +90,6 @@ export default function Home() {
       .from('joins')
       .select('post_id')
       .eq('user_id', user.id)
-
     if (data) setJoined(new Set(data.map((j) => j.post_id)))
   }
 
@@ -101,8 +99,6 @@ export default function Home() {
     const { error } = await supabase
       .from('joins')
       .insert({ post_id: postId, user_id: user.id })
-
-    // A unique-violation just means they already joined — treat as success.
     if (!error || error.code === '23505') {
       setJoined((prev) => new Set([...prev, postId]))
     }
@@ -116,101 +112,125 @@ export default function Home() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center text-slate-400">
-        Loading activities…
+      <div className="flex min-h-screen items-center justify-center text-[#8a8a82]">
+        Loading…
       </div>
     )
   }
 
+  const dateLabel = new Date()
+    .toLocaleDateString([], { weekday: 'long' })
+    .toUpperCase()
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="max-w-md mx-auto p-4">
+    <div className="min-h-screen bg-[#fafaf7]">
+      <div className="mx-auto w-full max-w-[440px] px-5 pb-16">
         {/* Header */}
-        <header className="flex justify-between items-center mb-6 pt-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Dazi</h1>
-            {greeting && <p className="text-slate-400 text-sm">Hi, {greeting}</p>}
-          </div>
-          <div className="flex gap-2">
+        <header className="pt-8 pb-3">
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-[11px] font-semibold tracking-[0.08em] text-[#8a8a82]">
+                {dateLabel} · TONIGHT
+              </div>
+              <div className="font-display text-[30px] font-bold tracking-tight text-[#0a0a0a]">
+                dazi
+              </div>
+            </div>
             <button
               onClick={() => router.push('/post')}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition"
+              className="rounded-full bg-[#ff4d2e] px-[18px] py-[11px] text-sm font-bold text-white transition active:scale-95"
             >
               + Post
             </button>
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-[#6e6e66]">
+              {greeting ? `Hi, ${greeting}` : 'Welcome back'}
+            </p>
             <button
               onClick={handleLogout}
-              className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition"
+              className="text-xs font-semibold text-[#a3a399] transition hover:text-[#0a0a0a]"
             >
-              Logout
+              Log out
             </button>
           </div>
         </header>
 
-        {/* Activities */}
+        {/* Feed */}
         {posts.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-slate-300 font-medium">No activities yet.</p>
-            <p className="text-slate-500 text-sm mt-1">Be the first to post one!</p>
+          <div className="mt-10 rounded-[22px] border border-[#eaeae2] bg-white px-6 py-14 text-center">
+            <div className="text-3xl">🌱</div>
+            <p className="mt-3 font-display text-lg font-bold text-[#0a0a0a]">
+              Nothing on yet
+            </p>
+            <p className="mt-1 text-sm text-[#8a8a82]">
+              Be the first to start something.
+            </p>
             <button
               onClick={() => router.push('/post')}
-              className="mt-6 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition"
+              className="mt-6 rounded-full bg-[#ff4d2e] px-6 py-3 text-sm font-bold text-white transition active:scale-95"
             >
-              + Post an activity
+              Post an activity
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="mt-2 flex flex-col gap-[14px]">
             {posts.map((post) => {
               const author = authorOf(post)
               const isJoined = joined.has(post.id)
               const emoji = ACTIVITY_EMOJI[post.activity] ?? '📍'
               return (
-                <div
+                <article
                   key={post.id}
-                  className="bg-slate-700/50 border border-slate-600 rounded-lg p-4"
+                  className="rounded-[22px] border border-[#eaeae2] bg-white p-[18px]"
                 >
-                  <div className="flex justify-between items-start gap-3">
-                    <div>
-                      <h3 className="text-white font-semibold text-base">
-                        <span className="text-xl mr-1.5">{emoji}</span>
-                        {post.activity}
-                      </h3>
-                      <p className="text-slate-400 text-xs mt-1">
-                        @{author?.handle ?? 'someone'}
-                      </p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-[10px]">
+                      <span className="text-2xl">{emoji}</span>
+                      <div>
+                        <h3 className="font-display text-[18px] font-bold tracking-tight text-[#0a0a0a]">
+                          {post.activity}
+                        </h3>
+                        <p className="text-[12.5px] font-medium text-[#8a8a82]">
+                          with @{author?.handle ?? 'someone'}
+                        </p>
+                      </div>
                     </div>
-                    {post.price != null && (
-                      <span className="shrink-0 rounded-full bg-teal-500/15 text-teal-300 text-xs font-semibold px-3 py-1">
-                        💎 ${formatPrice(post.price)}
+                    {post.price != null ? (
+                      <span className="text-[16px] font-bold text-[#ff4d2e]">
+                        ${formatPrice(post.price)}
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-semibold tracking-[0.06em] text-[#a3a399]">
+                        FREE
                       </span>
                     )}
                   </div>
 
-                  <div className="mt-3 space-y-1.5 text-sm text-slate-300">
-                    <p>📍 {post.location}</p>
-                    <p>🕐 {formatTime(post.starts_at)}</p>
-                    <p>⏱️ {post.duration_min}m</p>
+                  <div className="mt-4 mb-4 flex gap-7">
+                    <Stat k="WHERE" v={post.location.split(',')[0]} />
+                    <Stat k="WHEN" v={formatTime(post.starts_at)} />
+                    <Stat k="FOR" v={`${post.duration_min}m`} />
                   </div>
 
                   <button
                     onClick={() => joinActivity(post.id)}
                     disabled={isJoined || joining === post.id}
-                    className={`mt-4 w-full py-2.5 rounded-lg font-semibold text-sm transition ${
+                    className={`w-full rounded-[14px] py-3 text-[14.5px] font-bold transition active:scale-[0.99] ${
                       isJoined
-                        ? 'bg-slate-600 text-slate-300 cursor-default'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60'
+                        ? 'bg-[#f1f1ec] text-[#8a8a82]'
+                        : 'bg-[#ff4d2e] text-white hover:bg-[#f0421f] disabled:opacity-70'
                     }`}
                   >
                     {isJoined
-                      ? '✓ Joined'
+                      ? '✓ You’re in'
                       : joining === post.id
                         ? 'Joining…'
                         : post.price != null
-                          ? `Join for $${formatPrice(post.price)}`
-                          : "I'm in"}
+                          ? `Join · $${formatPrice(post.price)}`
+                          : 'I’m in'}
                   </button>
-                </div>
+                </article>
               )
             })}
           </div>
@@ -220,11 +240,22 @@ export default function Home() {
   )
 }
 
+function Stat({ k, v }: { k: string; v: string }) {
+  return (
+    <div>
+      <div className="text-[10px] font-bold tracking-[0.07em] text-[#a3a399]">
+        {k}
+      </div>
+      <div className="mt-0.5 text-[14px] font-semibold text-[#0a0a0a]">{v}</div>
+    </div>
+  )
+}
+
 function formatTime(iso: string): string {
-  // starts_at is timestamptz, so the value already carries an offset/Z.
-  return new Date(iso).toLocaleTimeString([], {
-    hour: '2-digit',
+  return new Date(iso).toLocaleTimeString('en-US', {
+    hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
   })
 }
 

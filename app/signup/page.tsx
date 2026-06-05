@@ -19,9 +19,6 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      // Sign up with Supabase Auth. The name + handle ride along as user
-      // metadata; a database trigger turns that into a profiles row and
-      // auto-confirms the email, so there is never a confirmation step.
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -33,8 +30,6 @@ export default function SignupPage() {
       if (authError) throw authError
       if (!authData.user) throw new Error('No user returned')
 
-      // Email is auto-confirmed, so a session is usually issued right away.
-      // If for any reason it wasn't, sign in to obtain one before continuing.
       if (!authData.session) {
         const { error: signInError } =
           await supabase.auth.signInWithPassword({ email, password })
@@ -50,72 +45,112 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Dazi</h1>
-          <p className="text-slate-400">Activity coordination, reimagined</p>
+    <AuthShell
+      title="Make plans, together."
+      subtitle="Post what you’re doing. Friends jump in."
+    >
+      <form onSubmit={handleSignup} className="flex flex-col gap-3">
+        {error && <ErrorNote>{error}</ErrorNote>}
+        <Field placeholder="Your name" value={name} onChange={setName} autoFocus />
+        <Field placeholder="Username" value={handle} onChange={setHandle} />
+        <Field placeholder="Email" type="email" value={email} onChange={setEmail} />
+        <Field
+          placeholder="Password"
+          type="password"
+          value={password}
+          onChange={setPassword}
+        />
+        <SubmitButton loading={loading} idle="Create account" busy="Creating…" />
+      </form>
+      <p className="mt-5 text-center text-sm text-[#8a8a82]">
+        Already have an account?{' '}
+        <a href="/login" className="font-semibold text-[#ff4d2e]">
+          Log in
+        </a>
+      </p>
+    </AuthShell>
+  )
+}
+
+/* Shared auth UI — also used by the login screen. */
+
+export function AuthShell({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string
+  subtitle: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex min-h-screen flex-col bg-[#fafaf7] px-6">
+      <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col justify-center py-12">
+        <div className="mb-9">
+          <div className="font-display text-[34px] font-bold tracking-tight text-[#0a0a0a]">
+            dazi
+          </div>
+          <h1 className="mt-6 font-display text-[28px] font-bold leading-tight tracking-tight text-[#0a0a0a]">
+            {title}
+          </h1>
+          <p className="mt-2 text-[15px] text-[#8a8a82]">{subtitle}</p>
         </div>
-
-        <form onSubmit={handleSignup} className="space-y-4 bg-slate-800 p-8 rounded-lg">
-          {error && (
-            <div className="p-3 rounded bg-red-500/20 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
-
-          <input
-            type="text"
-            placeholder="Your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-          />
-
-          <input
-            type="text"
-            placeholder="Username (e.g. @username)"
-            value={handle}
-            onChange={(e) => setHandle(e.target.value)}
-            required
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-          />
-
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 transition"
-          >
-            {loading ? 'Creating account...' : 'Sign up'}
-          </button>
-
-          <p className="text-center text-sm text-slate-400">
-            Already have an account?{' '}
-            <a href="/login" className="text-blue-400 hover:text-blue-300">
-              Log in
-            </a>
-          </p>
-        </form>
+        {children}
       </div>
+    </div>
+  )
+}
+
+export function Field({
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  autoFocus = false,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  type?: string
+  autoFocus?: boolean
+}) {
+  return (
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      autoFocus={autoFocus}
+      onChange={(e) => onChange(e.target.value)}
+      required
+      className="w-full rounded-2xl border border-[#e4e4dc] bg-white px-4 py-3.5 text-[15px] text-[#0a0a0a] placeholder-[#a3a399] outline-none transition focus:border-[#ff4d2e]"
+    />
+  )
+}
+
+export function SubmitButton({
+  loading,
+  idle,
+  busy,
+}: {
+  loading: boolean
+  idle: string
+  busy: string
+}) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      className="mt-2 w-full rounded-2xl bg-[#ff4d2e] py-3.5 text-[15px] font-bold text-white transition hover:bg-[#f0421f] active:scale-[0.99] disabled:opacity-60"
+    >
+      {loading ? busy : idle}
+    </button>
+  )
+}
+
+export function ErrorNote({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl bg-[#ffeae6] px-4 py-3 text-sm font-medium text-[#d23a1c]">
+      {children}
     </div>
   )
 }

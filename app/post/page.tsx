@@ -5,12 +5,18 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 
-const ACTIVITIES = ['Badminton', 'Pickleball', 'Padel', 'Run', 'Gym']
+const ACTIVITIES: { name: string; emoji: string }[] = [
+  { name: 'Badminton', emoji: '🏸' },
+  { name: 'Pickleball', emoji: '🏓' },
+  { name: 'Padel', emoji: '🎾' },
+  { name: 'Run', emoji: '🏃' },
+  { name: 'Gym', emoji: '🏋️' },
+]
 
 export default function PostPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const [activity, setActivity] = useState(ACTIVITIES[0])
+  const [activity, setActivity] = useState(ACTIVITIES[0].name)
   const [location, setLocation] = useState('')
   const [startTime, setStartTime] = useState('19:00')
   const [duration, setDuration] = useState('120')
@@ -27,30 +33,25 @@ export default function PostPage() {
     try {
       if (!user) throw new Error('Not authenticated')
 
-      // Create ISO timestamp for today at the specified time
-      const today = new Date()
       const [hours, minutes] = startTime.split(':')
-      const startsAt = new Date(today)
+      const startsAt = new Date()
       startsAt.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
       const postId = `${user.id}-${Date.now()}`
 
-      const { error: postError } = await supabase
-        .from('posts')
-        .insert({
-          id: postId,
-          author_id: user.id,
-          activity,
-          location,
-          starts_at: startsAt.toISOString(),
-          duration_min: parseInt(duration),
-          price: price ? parseFloat(price) : null,
-          cap: cap ? parseInt(cap) : null,
-          status: 'upcoming',
-        })
+      const { error: postError } = await supabase.from('posts').insert({
+        id: postId,
+        author_id: user.id,
+        activity,
+        location,
+        starts_at: startsAt.toISOString(),
+        duration_min: parseInt(duration),
+        price: price ? parseFloat(price) : null,
+        cap: cap ? parseInt(cap) : null,
+        status: 'upcoming',
+      })
 
       if (postError) throw postError
-
       router.push('/')
     } catch (err: any) {
       setError(err.message || 'Failed to create activity')
@@ -60,116 +61,152 @@ export default function PostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="max-w-md mx-auto p-4">
+    <div className="min-h-screen bg-[#fafaf7] px-5 pb-16">
+      <div className="mx-auto w-full max-w-[440px]">
         <button
           onClick={() => router.back()}
-          className="text-slate-400 hover:text-white mb-6 mt-4"
+          className="mt-7 mb-6 text-sm font-semibold text-[#8a8a82] transition hover:text-[#0a0a0a]"
         >
           ← Back
         </button>
 
-        <h1 className="text-3xl font-bold text-white mb-8">Post an Activity</h1>
+        <h1 className="font-display text-[28px] font-bold tracking-tight text-[#0a0a0a]">
+          Start something
+        </h1>
+        <p className="mt-1 mb-7 text-[15px] text-[#8a8a82]">
+          Post it and let people jump in.
+        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 bg-slate-800 p-6 rounded-lg">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {error && (
-            <div className="p-3 rounded bg-red-500/20 text-red-400 text-sm">
+            <div className="rounded-xl bg-[#ffeae6] px-4 py-3 text-sm font-medium text-[#d23a1c]">
               {error}
             </div>
           )}
 
+          {/* Activity chips */}
           <div>
-            <label className="text-slate-300 text-sm font-medium block mb-2">
-              Activity
-            </label>
-            <select
-              value={activity}
-              onChange={(e) => setActivity(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-            >
-              {ACTIVITIES.map(a => (
-                <option key={a} value={a}>{a}</option>
-              ))}
-            </select>
+            <Label>Activity</Label>
+            <div className="flex flex-wrap gap-2">
+              {ACTIVITIES.map((a) => {
+                const selected = a.name === activity
+                return (
+                  <button
+                    key={a.name}
+                    type="button"
+                    onClick={() => setActivity(a.name)}
+                    className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition active:scale-95 ${
+                      selected
+                        ? 'border-[#ff4d2e] bg-[#ff4d2e] text-white'
+                        : 'border-[#e4e4dc] bg-white text-[#0a0a0a]'
+                    }`}
+                  >
+                    <span className="mr-1.5">{a.emoji}</span>
+                    {a.name}
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <div>
-            <label className="text-slate-300 text-sm font-medium block mb-2">
-              Location
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Central Park"
+            <Label>Where</Label>
+            <Input
+              placeholder="e.g. Central Park, Court 3"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={setLocation}
               required
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
             />
           </div>
 
-          <div>
-            <label className="text-slate-300 text-sm font-medium block mb-2">
-              Start Time
-            </label>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              required
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label>Start time</Label>
+              <Input type="time" value={startTime} onChange={setStartTime} required />
+            </div>
+            <div className="flex-1">
+              <Label>Minutes</Label>
+              <Input
+                type="number"
+                placeholder="120"
+                value={duration}
+                onChange={setDuration}
+                required
+              />
+            </div>
           </div>
 
-          <div>
-            <label className="text-slate-300 text-sm font-medium block mb-2">
-              Duration (minutes)
-            </label>
-            <input
-              type="number"
-              placeholder="120"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              required
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-slate-300 text-sm font-medium block mb-2">
-              Price per person (optional)
-            </label>
-            <input
-              type="number"
-              placeholder="15"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              step="0.01"
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="text-slate-300 text-sm font-medium block mb-2">
-              Capacity (optional)
-            </label>
-            <input
-              type="number"
-              placeholder="4"
-              value={cap}
-              onChange={(e) => setCap(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-            />
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <Label>
+                Price <span className="font-normal text-[#a3a399]">· optional</span>
+              </Label>
+              <Input
+                type="number"
+                placeholder="Free"
+                value={price}
+                onChange={setPrice}
+                step="0.01"
+              />
+            </div>
+            <div className="flex-1">
+              <Label>
+                Spots <span className="font-normal text-[#a3a399]">· optional</span>
+              </Label>
+              <Input
+                type="number"
+                placeholder="Any"
+                value={cap}
+                onChange={setCap}
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg disabled:opacity-50 transition"
+            className="mt-1 w-full rounded-2xl bg-[#ff4d2e] py-3.5 text-[15px] font-bold text-white transition hover:bg-[#f0421f] active:scale-[0.99] disabled:opacity-60"
           >
-            {loading ? 'Creating...' : 'Post Activity'}
+            {loading ? 'Posting…' : 'Post activity'}
           </button>
         </form>
       </div>
     </div>
+  )
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <label className="mb-2 block text-[12px] font-bold tracking-[0.04em] text-[#6e6e66]">
+      {children}
+    </label>
+  )
+}
+
+function Input({
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  required = false,
+  step,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  type?: string
+  required?: boolean
+  step?: string
+}) {
+  return (
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      required={required}
+      step={step}
+      className="w-full rounded-2xl border border-[#e4e4dc] bg-white px-4 py-3.5 text-[15px] text-[#0a0a0a] placeholder-[#a3a399] outline-none transition focus:border-[#ff4d2e]"
+    />
   )
 }
