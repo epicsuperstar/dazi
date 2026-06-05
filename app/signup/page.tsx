@@ -19,28 +19,28 @@ export default function SignupPage() {
     setLoading(true)
 
     try {
-      // Sign up with Supabase Auth
+      // Sign up with Supabase Auth. The name + handle ride along as user
+      // metadata; a database trigger turns that into a profiles row and
+      // auto-confirms the email, so there is never a confirmation step.
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: { name, handle: handle.replace(/^@/, '') },
+        },
       })
 
       if (authError) throw authError
       if (!authData.user) throw new Error('No user returned')
 
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          name,
-          handle,
-        })
+      // Email is auto-confirmed, so a session is usually issued right away.
+      // If for any reason it wasn't, sign in to obtain one before continuing.
+      if (!authData.session) {
+        const { error: signInError } =
+          await supabase.auth.signInWithPassword({ email, password })
+        if (signInError) throw signInError
+      }
 
-      if (profileError) throw profileError
-
-      // Supabase signUp automatically creates a session
-      // Just redirect to home
       router.push('/')
     } catch (err: any) {
       setError(err.message || 'Signup failed')
