@@ -7,6 +7,7 @@ import {
   formatTime,
   mapsUrl,
   relativeDay,
+  whatsappInvite,
 } from '@/lib/ui'
 
 export type ActivityCardData = {
@@ -134,6 +135,15 @@ export function ActivityCard({
             : data.price != null
               ? `Join · $${formatPrice(data.price)}`
               : 'I’m in'}
+      </button>
+
+      <button
+        onClick={() =>
+          whatsappInvite(`/a/${data.id}`, `Come play ${data.activity} with me on Dazi`)
+        }
+        className="mt-2 w-full text-center text-[13px] font-semibold text-[#8a8a82] transition hover:text-[#1f8a70]"
+      >
+        Invite friends ↗
       </button>
     </article>
   )

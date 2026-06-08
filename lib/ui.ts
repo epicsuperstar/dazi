@@ -30,6 +30,27 @@ export function formatHours(minutes: number): string {
   return `${Number.isInteger(h) ? h : h.toFixed(1)}h`
 }
 
+export function shareUrl(path: string): string {
+  const base =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'https://dazi-chi.vercel.app'
+  return base + path
+}
+
+/** Open WhatsApp (or the native share sheet) with an invite to a path. */
+export function whatsappInvite(path: string, text: string) {
+  const url = shareUrl(path)
+  const wa = `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`
+  if (typeof navigator !== 'undefined' && (navigator as any).share) {
+    ;(navigator as any).share({ title: 'Dazi', text, url }).catch(() => {
+      if (typeof window !== 'undefined') window.open(wa, '_blank')
+    })
+  } else if (typeof window !== 'undefined') {
+    window.open(wa, '_blank')
+  }
+}
+
 export function timeAgo(iso: string): string {
   const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
   if (s < 60) return 'just now'

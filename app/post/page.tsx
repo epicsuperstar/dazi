@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
-import { Avatar } from '@/components/Avatar'
 
 const ACTIVITIES: { name: string; emoji: string }[] = [
   { name: 'Badminton', emoji: '🏸' },
@@ -19,10 +18,8 @@ const LEVELS = ['All levels', 'Beginner', 'Intermediate', 'Advanced']
 const VISIBILITY: { value: string; label: string; hint: string }[] = [
   { value: 'public', label: 'Public', hint: 'Anyone on Dazi can see it' },
   { value: 'followers', label: 'Followers', hint: 'Only people who follow you' },
-  { value: 'invite', label: 'Invite only', hint: 'Hidden. Only people you tag in' },
+  { value: 'invite', label: 'Private · link only', hint: 'Hidden from the feed. Only people you send the link to' },
 ]
-
-type TaggedUser = { id: string; name: string | null; handle: string | null }
 
 export default function PostPage() {
   const router = useRouter()
@@ -38,7 +35,6 @@ export default function PostPage() {
   const [price, setPrice] = useState('')
   const [payNote, setPayNote] = useState('')
   const [cap, setCap] = useState('')
-  const [tagged, setTagged] = useState<TaggedUser[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -75,14 +71,8 @@ export default function PostPage() {
 
       if (postError) throw postError
 
-      // Add tagged people as attending (host is allowed to add others).
-      if (tagged.length > 0) {
-        await supabase
-          .from('joins')
-          .insert(tagged.map((t) => ({ post_id: postId, user_id: t.id })))
-      }
-
-      router.push('/')
+      // Land on the activity's shareable page so the host can invite people.
+      router.push(`/a/${postId}`)
     } catch (err: any) {
       setError(err.message || 'Failed to create activity')
     } finally {
@@ -288,14 +278,6 @@ export default function PostPage() {
             </div>
           )}
 
-          <div>
-            <Label>
-              Tag people coming{' '}
-              <span className="font-normal text-[#a3a399]">· optional</span>
-            </Label>
-            <TagPeople meId={user?.id} tagged={tagged} setTagged={setTagged} />
-          </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -305,127 +287,6 @@ export default function PostPage() {
           </button>
         </form>
       </div>
-    </div>
-  )
-}
-
-function TagPeople({
-  meId,
-  tagged,
-  setTagged,
-}: {
-  meId?: string
-  tagged: TaggedUser[]
-  setTagged: (t: TaggedUser[]) => void
-}) {
-  const [q, setQ] = useState('')
-  const [results, setResults] = useState<TaggedUser[]>([])
-
-  useEffect(() => {
-    const term = q.trim().replace(/[%,()]/g, '')
-    if (term.length < 2) {
-      setResults([])
-      return
-    }
-    let active = true
-    supabase
-      .from('profiles')
-      .select('id, name, handle')
-      .or(`handle.ilike.%${term}%,name.ilike.%${term}%`)
-      .limit(6)
-      .then(({ data }) => {
-        if (!active) return
-        const taggedIds = new Set(tagged.map((t) => t.id))
-        setResults(
-          ((data as TaggedUser[]) || []).filter(
-            (p) => p.id !== meId && !taggedIds.has(p.id),
-          ),
-        )
-      })
-    return () => {
-      active = false
-    }
-  }, [q, tagged, meId])
-
-  function shareWhatsApp() {
-    const url = 'https://dazi-chi.vercel.app'
-    const text = `Come play with me on Dazi: ${url}`
-    const wa = `https://wa.me/?text=${encodeURIComponent(text)}`
-    if (typeof navigator !== 'undefined' && (navigator as any).share) {
-      ;(navigator as any)
-        .share({ title: 'Dazi', text, url })
-        .catch(() => window.open(wa, '_blank'))
-    } else {
-      window.open(wa, '_blank')
-    }
-  }
-
-  return (
-    <div>
-      {tagged.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {tagged.map((t) => (
-            <span
-              key={t.id}
-              className="flex items-center gap-1.5 rounded-full bg-[#f1f1ec] py-1 pl-1 pr-2 text-[13px] font-semibold text-[#0a0a0a]"
-            >
-              <Avatar name={t.name} handle={t.handle} size={22} />
-              {t.name || t.handle}
-              <button
-                type="button"
-                onClick={() => setTagged(tagged.filter((x) => x.id !== t.id))}
-                className="ml-0.5 text-[#a3a399] hover:text-[#0a0a0a]"
-                aria-label="Remove"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      <input
-        type="text"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Search people by name or @handle"
-        className="w-full rounded-2xl border border-[#e4e4dc] bg-white px-4 py-3.5 text-[15px] text-[#0a0a0a] placeholder-[#a3a399] outline-none transition focus:border-[#ff4d2e]"
-      />
-
-      {results.length > 0 && (
-        <div className="mt-2 overflow-hidden rounded-2xl border border-[#eaeae2] bg-white">
-          {results.map((r) => (
-            <button
-              key={r.id}
-              type="button"
-              onClick={() => {
-                setTagged([...tagged, r])
-                setQ('')
-                setResults([])
-              }}
-              className="flex w-full items-center gap-3 px-3 py-2.5 text-left transition hover:bg-[#faf9f5]"
-            >
-              <Avatar name={r.name} handle={r.handle} size={32} />
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold text-[#0a0a0a]">
-                  {r.name}
-                </span>
-                <span className="block truncate text-[12px] text-[#8a8a82]">
-                  @{r.handle}
-                </span>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-
-      <button
-        type="button"
-        onClick={shareWhatsApp}
-        className="mt-2 text-[13px] font-semibold text-[#1f8a70]"
-      >
-        Not on Dazi? Invite via WhatsApp ↗
-      </button>
     </div>
   )
 }
