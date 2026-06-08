@@ -4,17 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
-function deriveHandle(name: string, email: string): string {
-  const base = (name.trim() || email.split('@')[0] || 'dazi')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '')
-    .slice(0, 20)
-  return base || 'dazi'
-}
-
 export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
   const router = useRouter()
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,11 +17,7 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
     setLoading(true)
     try {
       if (mode === 'signup') {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { name: name.trim(), handle: deriveHandle(name, email) } },
-        })
+        const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
         // Email confirmation is auto-confirmed by a DB trigger, so we can sign
         // straight in if signUp didn't already return a session.
@@ -68,25 +55,13 @@ export function AuthForm({ mode }: { mode: 'signin' | 'signup' }) {
           </div>
         )}
 
-        {mode === 'signup' && (
-          <input
-            type="text"
-            placeholder="Your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            autoFocus
-            className="w-full rounded-2xl border border-[#e4e4dc] bg-white px-4 py-3.5 text-[15px] text-[#0a0a0a] placeholder-[#a3a399] outline-none transition focus:border-[#ff4d2e]"
-          />
-        )}
-
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          autoFocus={mode === 'signin'}
+          autoFocus
           autoComplete="email"
           className="w-full rounded-2xl border border-[#e4e4dc] bg-white px-4 py-3.5 text-[15px] text-[#0a0a0a] placeholder-[#a3a399] outline-none transition focus:border-[#ff4d2e]"
         />
