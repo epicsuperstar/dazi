@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import { useJoins } from '@/lib/useJoins'
 import { Post } from '@/lib/types'
-import { ActivityCard } from '@/components/ActivityCard'
+import { ActivityCard, Attendee } from '@/components/ActivityCard'
 import { TabBar } from '@/components/TabBar'
 import { NotifBell } from '@/components/NotifBell'
 
@@ -18,6 +18,7 @@ export default function Home() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [posts, setPosts] = useState<Post[]>([])
+  const [attendeesByPost, setAttendeesByPost] = useState<Record<string, Attendee[]>>({})
   const [loading, setLoading] = useState(true)
   const [greeting, setGreeting] = useState('')
   const [filter, setFilter] = useState<'all' | 'following'>('all')
@@ -64,8 +65,42 @@ export default function Home() {
       )
       .eq('status', 'upcoming')
       .order('starts_at', { ascending: true })
-    setPosts((data as unknown as Post[]) || [])
+    const list = (data as unknown as Post[]) || []
+    setPosts(list)
     setLoading(false)
+    fetchAttendees(list.map((p) => p.id))
+  }
+
+  async function fetchAttendees(postIds: string[]) {
+    if (postIds.length === 0) {
+      setAttendeesByPost({})
+      return
+    }
+    const { data: joinRows } = await supabase
+      .from('joins')
+      .select('post_id, user_id')
+      .in('post_id', postIds)
+    if (!joinRows) return
+
+    const userIds = [...new Set(joinRows.map((j) => j.user_id))]
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, name, handle, avatar_url')
+      .in('id', userIds)
+    const profById = new Map((profs || []).map((p) => [p.id, p]))
+
+    const map: Record<string, Attendee[]> = {}
+    for (const j of joinRows) {
+      const p = profById.get(j.user_id)
+      if (!p) continue
+      ;(map[j.post_id] ||= []).push({
+        id: p.id,
+        name: p.name,
+        handle: p.handle,
+        avatar_url: p.avatar_url,
+      })
+    }
+    setAttendeesByPost(map)
   }
 
   if (authLoading || loading) {
@@ -154,6 +189,7 @@ export default function Home() {
                     price: post.price,
                     hostName: author?.name,
                     hostHandle: author?.handle,
+                    attendees: attendeesByPost[post.id],
                   }}
                   joined={joined.has(post.id)}
                   joining={joining === post.id}

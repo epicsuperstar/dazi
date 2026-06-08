@@ -9,6 +9,14 @@ import {
   relativeDay,
   whatsappInvite,
 } from '@/lib/ui'
+import { Avatar } from '@/components/Avatar'
+
+export type Attendee = {
+  id?: string
+  name?: string | null
+  handle?: string | null
+  avatar_url?: string | null
+}
 
 export type ActivityCardData = {
   id: string
@@ -24,6 +32,7 @@ export type ActivityCardData = {
   hostName?: string | null
   hostHandle?: string | null
   reason?: string | null
+  attendees?: Attendee[]
 }
 
 export function ActivityCard({
@@ -119,6 +128,25 @@ export function ActivityCard({
         </p>
       )}
 
+      {data.attendees && data.attendees.length > 0 && (
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex -space-x-2">
+            {data.attendees.slice(0, 5).map((a, i) => (
+              <span
+                key={a.id || i}
+                className="rounded-full ring-2 ring-white"
+                title={a.name || a.handle || ''}
+              >
+                <Avatar name={a.name} handle={a.handle} url={a.avatar_url} size={26} />
+              </span>
+            ))}
+          </div>
+          <span className="text-[12.5px] font-medium text-[#8a8a82]">
+            {goingLabel(data.attendees)}
+          </span>
+        </div>
+      )}
+
       <button
         onClick={onJoin}
         disabled={joined || joining}
@@ -147,6 +175,18 @@ export function ActivityCard({
       </button>
     </article>
   )
+}
+
+function goingLabel(attendees: Attendee[]): string {
+  const n = attendees.length
+  const first = attendees[0]?.name?.split(' ')[0] || attendees[0]?.handle || 'Someone'
+  if (n === 1) return `${first} is going`
+  if (n === 2) {
+    const second =
+      attendees[1]?.name?.split(' ')[0] || attendees[1]?.handle || 'someone'
+    return `${first} & ${second} are going`
+  }
+  return `${first} & ${n - 1} others going`
 }
 
 function Stat({ k, v }: { k: string; v: string }) {

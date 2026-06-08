@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import { useJoins } from '@/lib/useJoins'
 import { whatsappInvite } from '@/lib/ui'
-import { ActivityCard, ActivityCardData } from '@/components/ActivityCard'
+import { ActivityCard, ActivityCardData, Attendee } from '@/components/ActivityCard'
 import { TabBar } from '@/components/TabBar'
 
 export default function ActivitySharePage() {
@@ -17,6 +17,7 @@ export default function ActivitySharePage() {
   const { user, loading: authLoading } = useAuth()
   const { joined, joining, join } = useJoins(user?.id)
   const [card, setCard] = useState<ActivityCardData | null>(null)
+  const [attendees, setAttendees] = useState<Attendee[]>([])
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
 
   useEffect(() => {
@@ -43,6 +44,28 @@ export default function ActivitySharePage() {
       setStatus('ready')
     })
   }, [id])
+
+  useEffect(() => {
+    async function loadAttendees() {
+      const { data: joinRows } = await supabase
+        .from('joins')
+        .select('user_id')
+        .eq('post_id', id)
+      if (!joinRows || joinRows.length === 0) {
+        setAttendees([])
+        return
+      }
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, name, handle, avatar_url')
+        .in(
+          'id',
+          joinRows.map((j) => j.user_id),
+        )
+      setAttendees((profs as Attendee[]) || [])
+    }
+    loadAttendees()
+  }, [id, joined])
 
   if (status === 'loading' || authLoading) {
     return (
@@ -98,7 +121,7 @@ export default function ActivitySharePage() {
         </p>
 
         <ActivityCard
-          data={card}
+          data={{ ...card, attendees }}
           joined={joined.has(card.id)}
           joining={joining === card.id}
           onJoin={onJoin}
