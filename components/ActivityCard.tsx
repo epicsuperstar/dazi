@@ -15,6 +15,8 @@ export type ActivityCardData = {
   location: string
   postal_code?: string | null
   directions?: string | null
+  level?: string | null
+  pay_note?: string | null
   starts_at: string
   duration_min: number
   price: number | null
@@ -40,9 +42,16 @@ export function ActivityCard({
         <div className="flex items-center gap-[10px]">
           <span className="text-2xl">{activityEmoji(data.activity)}</span>
           <div>
-            <h3 className="font-display text-[18px] font-bold tracking-tight text-[#0a0a0a]">
-              {data.activity}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-display text-[18px] font-bold tracking-tight text-[#0a0a0a]">
+                {data.activity}
+              </h3>
+              {data.level && data.level !== 'All levels' && (
+                <span className="rounded-full bg-[#eef3ff] px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-[#3a66e0]">
+                  {data.level}
+                </span>
+              )}
+            </div>
             {data.hostHandle ? (
               <Link
                 href={`/u/${data.hostHandle}`}
@@ -98,8 +107,14 @@ export function ActivityCard({
       })()}
 
       {data.directions && (
-        <p className="mb-3 rounded-xl bg-[#f6f6f1] px-3 py-2 text-[12.5px] leading-relaxed text-[#6e6e66]">
+        <p className="mb-2 rounded-xl bg-[#f6f6f1] px-3 py-2 text-[12.5px] leading-relaxed text-[#6e6e66]">
           🧭 {data.directions}
+        </p>
+      )}
+
+      {data.price != null && data.pay_note && (
+        <p className="mb-3 rounded-xl bg-[#fff7ed] px-3 py-2 text-[12.5px] leading-relaxed text-[#b45309]">
+          💵 How to pay: {data.pay_note}
         </p>
       )}
 

@@ -5,7 +5,14 @@ import { supabase } from '@/lib/supabase'
 import { Profile } from '@/lib/types'
 import { Avatar } from '@/components/Avatar'
 import { FollowButton } from '@/components/FollowButton'
-import { activityEmoji, formatTime, linkLabel, normalizeUrl, relativeDay } from '@/lib/ui'
+import {
+  activityEmoji,
+  formatHours,
+  formatTime,
+  linkLabel,
+  normalizeUrl,
+  relativeDay,
+} from '@/lib/ui'
 
 type Row = {
   id: string
@@ -38,6 +45,7 @@ export function ProfileView({
   const [followers, setFollowers] = useState(0)
   const [followingN, setFollowingN] = useState(0)
   const [isFollowing, setIsFollowing] = useState(false)
+  const [shared, setShared] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -47,8 +55,15 @@ export function ProfileView({
 
   async function load() {
     setLoading(true)
-    const [hostedRes, joinedRes, circleRes, followersRes, followingRes, followRes] =
-      await Promise.all([
+    const [
+      hostedRes,
+      joinedRes,
+      circleRes,
+      followersRes,
+      followingRes,
+      followRes,
+      sharedRes,
+    ] = await Promise.all([
         supabase
           .from('posts')
           .select('id, activity, location, starts_at, duration_min, price, status')
@@ -76,6 +91,9 @@ export function ProfileView({
               .eq('following_id', profile.id)
               .maybeSingle()
           : Promise.resolve({ data: null }),
+        !isSelf && viewerId
+          ? supabase.rpc('shared_history', { p_user: viewerId, p_other: profile.id })
+          : Promise.resolve({ data: [] }),
       ])
 
     const byId = new Map<string, Row>()
@@ -91,6 +109,7 @@ export function ProfileView({
     setFollowers(followersRes.count || 0)
     setFollowingN(followingRes.count || 0)
     setIsFollowing(!!(followRes as any).data)
+    setShared((((sharedRes as any).data as Row[]) || []).map((p) => ({ ...p, role: 'Going' })))
     setRows([...byId.values()])
     setLoading(false)
   }
@@ -187,6 +206,33 @@ export function ProfileView({
           <StatBox n={joinedCount} label="Joined" border />
           <StatBox n={circle} label="Played with" />
         </div>
+
+        {!isSelf && shared.length > 0 && (
+          <div className="mt-5 rounded-[18px] border border-[#ffd9cf] bg-[#fff6f3] p-4">
+            <div className="font-display text-[15px] font-bold text-[#0a0a0a]">
+              You + {profile.name?.split(' ')[0] || profile.handle}
+            </div>
+            <div className="mt-1 text-[13.5px] text-[#6e6e66]">
+              <b className="text-[#ff4d2e]">
+                {formatHours(shared.reduce((s, r) => s + (r.duration_min || 0), 0))}
+              </b>{' '}
+              together over{' '}
+              <b className="text-[#0a0a0a]">{shared.length}</b>{' '}
+              {shared.length === 1 ? 'session' : 'sessions'}.
+            </div>
+            <div className="mt-3 flex flex-col gap-2">
+              {shared.slice(0, 4).map((r) => (
+                <div key={r.id} className="flex items-center gap-2 text-[13px] text-[#3a3a36]">
+                  <span className="text-[16px]">{activityEmoji(r.activity)}</span>
+                  <span className="font-semibold">{r.activity}</span>
+                  <span className="text-[#a3a399]">
+                    · {relativeDay(r.starts_at)} {formatTime(r.starts_at)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <p className="mt-10 text-center text-[#8a8a82]">Loading…</p>

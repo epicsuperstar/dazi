@@ -6,6 +6,9 @@ export type Post = {
   location: string
   postal_code: string | null
   directions: string | null
+  level: string | null
+  pay_note: string | null
+  visibility: string | null
   starts_at: string
   duration_min: number
   price: number | null

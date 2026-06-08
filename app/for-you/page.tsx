@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/useAuth'
 import { useJoins } from '@/lib/useJoins'
 import { ActivityCard, ActivityCardData } from '@/components/ActivityCard'
 import { TabBar } from '@/components/TabBar'
+import { NotifBell } from '@/components/NotifBell'
 
 type Rec = ActivityCardData & { joins_count: number }
 
@@ -34,6 +35,7 @@ export default function ForYouPage() {
             location: r.location,
             postal_code: r.postal_code,
             directions: r.directions,
+            level: r.level,
             starts_at: r.starts_at,
             duration_min: r.duration_min,
             price: r.price,
@@ -51,16 +53,19 @@ export default function ForYouPage() {
   return (
     <div className="min-h-screen bg-[#fafaf7] pb-24">
       <div className="mx-auto w-full max-w-[440px] px-5">
-        <header className="pt-8 pb-3">
-          <div className="text-[11px] font-semibold tracking-[0.08em] text-[#8a8a82]">
-            PICKED FOR YOU
+        <header className="flex items-start justify-between pt-8 pb-3">
+          <div>
+            <div className="text-[11px] font-semibold tracking-[0.08em] text-[#8a8a82]">
+              PICKED FOR YOU
+            </div>
+            <h1 className="font-display text-[30px] font-bold tracking-tight text-[#0a0a0a]">
+              For You
+            </h1>
+            <p className="mt-1 text-sm font-medium text-[#6e6e66]">
+              Based on what you play and who you play with.
+            </p>
           </div>
-          <h1 className="font-display text-[30px] font-bold tracking-tight text-[#0a0a0a]">
-            For You
-          </h1>
-          <p className="mt-1 text-sm font-medium text-[#6e6e66]">
-            Based on what you play and who you play with.
-          </p>
+          {user && <NotifBell userId={user.id} />}
         </header>
 
         {loading ? (

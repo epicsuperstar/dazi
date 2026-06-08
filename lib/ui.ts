@@ -22,6 +22,26 @@ export function formatPrice(price: number): string {
   return Number.isInteger(price) ? String(price) : price.toFixed(2)
 }
 
+/** Time spent together, leading with hours because it's more fun. */
+export function formatHours(minutes: number): string {
+  if (!minutes) return '0m'
+  if (minutes < 60) return `${minutes}m`
+  const h = minutes / 60
+  return `${Number.isInteger(h) ? h : h.toFixed(1)}h`
+}
+
+export function timeAgo(iso: string): string {
+  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000))
+  if (s < 60) return 'just now'
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}d ago`
+  return `${Math.floor(d / 7)}w ago`
+}
+
 /** "Today", "Tomorrow", "Mon" or "5 Jun" for older dates. */
 export function relativeDay(iso: string): string {
   const d = new Date(iso)

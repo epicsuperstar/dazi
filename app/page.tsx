@@ -8,6 +8,7 @@ import { useJoins } from '@/lib/useJoins'
 import { Post } from '@/lib/types'
 import { ActivityCard } from '@/components/ActivityCard'
 import { TabBar } from '@/components/TabBar'
+import { NotifBell } from '@/components/NotifBell'
 
 function authorOf(post: Post) {
   return Array.isArray(post.author) ? post.author[0] ?? null : post.author
@@ -59,7 +60,7 @@ export default function Home() {
     const { data } = await supabase
       .from('posts')
       .select(
-        `id, activity, location, postal_code, directions, starts_at, duration_min, price, cap, author_id, status, author:profiles(name, handle)`,
+        `id, activity, location, postal_code, directions, level, pay_note, starts_at, duration_min, price, cap, author_id, status, author:profiles(name, handle)`,
       )
       .eq('status', 'upcoming')
       .order('starts_at', { ascending: true })
@@ -97,12 +98,15 @@ export default function Home() {
                 dazi
               </div>
             </div>
-            <button
-              onClick={() => router.push('/post')}
-              className="rounded-full bg-[#ff4d2e] px-[18px] py-[11px] text-sm font-bold text-white transition active:scale-95"
-            >
-              + Post
-            </button>
+            <div className="flex items-center gap-2">
+              {user && <NotifBell userId={user.id} />}
+              <button
+                onClick={() => router.push('/post')}
+                className="rounded-full bg-[#ff4d2e] px-[18px] py-[11px] text-sm font-bold text-white transition active:scale-95"
+              >
+                + Post
+              </button>
+            </div>
           </div>
           <p className="mt-2 text-sm font-medium text-[#6e6e66]">
             {greeting ? `Hi, ${greeting}` : 'Welcome back'}
@@ -143,6 +147,8 @@ export default function Home() {
                     location: post.location,
                     postal_code: post.postal_code,
                     directions: post.directions,
+                    level: post.level,
+                    pay_note: post.pay_note,
                     starts_at: post.starts_at,
                     duration_min: post.duration_min,
                     price: post.price,
