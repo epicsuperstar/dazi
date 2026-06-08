@@ -21,7 +21,7 @@ export default function YouPage() {
     }
     supabase
       .from('profiles')
-      .select('id, name, handle, neighborhood, bio, instagram, tiktok')
+      .select('id, name, handle, neighborhood, bio, instagram, tiktok, avatar_url')
       .eq('id', user.id)
       .single()
       .then(({ data }) => setProfile(data as Profile))
@@ -43,7 +43,13 @@ export default function YouPage() {
 
   return (
     <>
-      <ProfileView profile={profile} isSelf onLogout={handleLogout} />
+      <ProfileView
+        profile={profile}
+        isSelf
+        viewerId={user?.id}
+        onLogout={handleLogout}
+        onEdit={() => router.push('/you/edit')}
+      />
       <TabBar />
     </>
   )

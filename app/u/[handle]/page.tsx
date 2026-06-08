@@ -25,7 +25,7 @@ export default function UserProfilePage() {
     }
     supabase
       .from('profiles')
-      .select('id, name, handle, neighborhood, bio, instagram, tiktok')
+      .select('id, name, handle, neighborhood, bio, instagram, tiktok, avatar_url')
       .eq('handle', handle)
       .maybeSingle()
       .then(({ data }) => {
@@ -71,7 +71,11 @@ export default function UserProfilePage() {
           ← Back
         </button>
       </div>
-      <ProfileView profile={profile} isSelf={user?.id === profile.id} />
+      <ProfileView
+        profile={profile}
+        isSelf={user?.id === profile.id}
+        viewerId={user?.id}
+      />
       <TabBar />
     </>
   )

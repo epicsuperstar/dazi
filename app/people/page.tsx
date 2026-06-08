@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
 import { Avatar } from '@/components/Avatar'
+import { FollowButton } from '@/components/FollowButton'
 import { TabBar } from '@/components/TabBar'
 
 type Played = {
@@ -13,6 +14,7 @@ type Played = {
   name: string | null
   handle: string | null
   neighborhood: string | null
+  avatar_url: string | null
   together: number
   activities: string | null
 }
@@ -23,6 +25,7 @@ type Person = {
   handle: string | null
   neighborhood: string | null
   bio: string | null
+  avatar_url: string | null
 }
 
 export default function PeoplePage() {
@@ -30,6 +33,7 @@ export default function PeoplePage() {
   const { user, loading: authLoading } = useAuth()
   const [played, setPlayed] = useState<Played[]>([])
   const [discover, setDiscover] = useState<Person[]>([])
+  const [followingSet, setFollowingSet] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,18 +47,20 @@ export default function PeoplePage() {
   }, [user, authLoading])
 
   async function load(uid: string) {
-    const [{ data: pw }, { data: all }] = await Promise.all([
+    const [{ data: pw }, { data: all }, { data: follows }] = await Promise.all([
       supabase.rpc('played_with', { p_user: uid }),
       supabase
         .from('profiles')
-        .select('id, name, handle, neighborhood, bio')
+        .select('id, name, handle, neighborhood, bio, avatar_url')
         .neq('id', uid),
+      supabase.from('follows').select('following_id').eq('follower_id', uid),
     ])
     const playedRows = ((pw as any[]) || []).map((r) => ({
       ...r,
       together: Number(r.together),
     })) as Played[]
     setPlayed(playedRows)
+    setFollowingSet(new Set(((follows as any[]) || []).map((f) => f.following_id)))
     const knownIds = new Set(playedRows.map((p) => p.id))
     setDiscover(((all as Person[]) || []).filter((p) => !knownIds.has(p.id)))
     setLoading(false)
@@ -94,7 +100,7 @@ export default function PeoplePage() {
                     href={`/u/${p.handle}`}
                     className="flex items-center gap-3 rounded-[18px] border border-[#eaeae2] bg-white p-3 transition active:scale-[0.99]"
                   >
-                    <Avatar name={p.name} handle={p.handle} size={46} />
+                    <Avatar name={p.name} handle={p.handle} url={p.avatar_url} size={46} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-display text-[15px] font-bold text-[#0a0a0a]">
                         {p.name}
@@ -115,26 +121,33 @@ export default function PeoplePage() {
             <SectionTitle>Discover</SectionTitle>
             <div className="flex flex-col gap-2.5">
               {discover.map((p) => (
-                <Link
+                <div
                   key={p.id}
-                  href={`/u/${p.handle}`}
-                  className="flex items-center gap-3 rounded-[18px] border border-[#eaeae2] bg-white p-3 transition active:scale-[0.99]"
+                  className="flex items-center gap-3 rounded-[18px] border border-[#eaeae2] bg-white p-3"
                 >
-                  <Avatar name={p.name} handle={p.handle} size={46} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-display text-[15px] font-bold text-[#0a0a0a]">
-                      {p.name}
+                  <Link
+                    href={`/u/${p.handle}`}
+                    className="flex min-w-0 flex-1 items-center gap-3"
+                  >
+                    <Avatar name={p.name} handle={p.handle} url={p.avatar_url} size={46} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate font-display text-[15px] font-bold text-[#0a0a0a]">
+                        {p.name}
+                      </div>
+                      <div className="truncate text-[12.5px] text-[#8a8a82]">
+                        {p.bio || `@${p.handle}`}
+                      </div>
                     </div>
-                    <div className="truncate text-[12.5px] text-[#8a8a82]">
-                      {p.bio || `@${p.handle}`}
-                    </div>
-                  </div>
-                  {p.neighborhood && (
-                    <div className="shrink-0 text-[11px] font-semibold text-[#a3a399]">
-                      {p.neighborhood}
-                    </div>
+                  </Link>
+                  {user && (
+                    <FollowButton
+                      viewerId={user.id}
+                      targetId={p.id}
+                      initialFollowing={followingSet.has(p.id)}
+                      size="sm"
+                    />
                   )}
-                </Link>
+                </div>
               ))}
             </div>
           </>

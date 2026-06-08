@@ -21,4 +21,5 @@ export type Profile = {
   bio: string | null
   instagram: string | null
   tiktok: string | null
+  avatar_url: string | null
 }

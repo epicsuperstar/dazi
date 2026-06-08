@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Profile } from '@/lib/types'
 import { Avatar } from '@/components/Avatar'
+import { FollowButton } from '@/components/FollowButton'
 import { activityEmoji, formatTime, relativeDay } from '@/lib/ui'
 
 type Row = {
@@ -20,16 +21,23 @@ type Row = {
 export function ProfileView({
   profile,
   isSelf,
+  viewerId,
   onLogout,
+  onEdit,
 }: {
   profile: Profile
   isSelf: boolean
+  viewerId?: string
   onLogout?: () => void
+  onEdit?: () => void
 }) {
   const [rows, setRows] = useState<Row[]>([])
   const [circle, setCircle] = useState(0)
   const [hosted, setHosted] = useState(0)
   const [joinedCount, setJoinedCount] = useState(0)
+  const [followers, setFollowers] = useState(0)
+  const [followingN, setFollowingN] = useState(0)
+  const [isFollowing, setIsFollowing] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -39,24 +47,39 @@ export function ProfileView({
 
   async function load() {
     setLoading(true)
-    const [hostedRes, joinedRes, circleRes] = await Promise.all([
-      supabase
-        .from('posts')
-        .select('id, activity, location, starts_at, duration_min, price, status')
-        .eq('author_id', profile.id),
-      supabase
-        .from('joins')
-        .select(
-          'post:posts(id, activity, location, starts_at, duration_min, price, status)',
-        )
-        .eq('user_id', profile.id),
-      supabase.rpc('played_with', { p_user: profile.id }),
-    ])
+    const [hostedRes, joinedRes, circleRes, followersRes, followingRes, followRes] =
+      await Promise.all([
+        supabase
+          .from('posts')
+          .select('id, activity, location, starts_at, duration_min, price, status')
+          .eq('author_id', profile.id),
+        supabase
+          .from('joins')
+          .select(
+            'post:posts(id, activity, location, starts_at, duration_min, price, status)',
+          )
+          .eq('user_id', profile.id),
+        supabase.rpc('played_with', { p_user: profile.id }),
+        supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', profile.id),
+        supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('follower_id', profile.id),
+        !isSelf && viewerId
+          ? supabase
+              .from('follows')
+              .select('follower_id')
+              .eq('follower_id', viewerId)
+              .eq('following_id', profile.id)
+              .maybeSingle()
+          : Promise.resolve({ data: null }),
+      ])
 
     const byId = new Map<string, Row>()
-    for (const p of (hostedRes.data as any[]) || []) {
-      byId.set(p.id, { ...p, role: 'Host' })
-    }
+    for (const p of (hostedRes.data as any[]) || []) byId.set(p.id, { ...p, role: 'Host' })
     for (const j of (joinedRes.data as any[]) || []) {
       const p = Array.isArray(j.post) ? j.post[0] : j.post
       if (p && !byId.has(p.id)) byId.set(p.id, { ...p, role: 'Going' })
@@ -65,6 +88,9 @@ export function ProfileView({
     setHosted((hostedRes.data as any[])?.length || 0)
     setJoinedCount((joinedRes.data as any[])?.length || 0)
     setCircle(((circleRes.data as any[]) || []).length)
+    setFollowers(followersRes.count || 0)
+    setFollowingN(followingRes.count || 0)
+    setIsFollowing(!!(followRes as any).data)
     setRows([...byId.values()])
     setLoading(false)
   }
@@ -95,8 +121,8 @@ export function ProfileView({
 
         {/* Identity */}
         <div className="mt-4 flex items-center gap-4">
-          <Avatar name={profile.name} handle={profile.handle} size={68} />
-          <div className="min-w-0">
+          <Avatar name={profile.name} handle={profile.handle} url={profile.avatar_url} size={68} />
+          <div className="min-w-0 flex-1">
             <h1 className="font-display text-[24px] font-bold leading-tight tracking-tight text-[#0a0a0a]">
               {profile.name}
             </h1>
@@ -121,6 +147,32 @@ export function ProfileView({
             ↗ @{profile.instagram}
           </a>
         )}
+
+        {/* Follow row */}
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-[13.5px] text-[#6e6e66]">
+            <b className="font-display text-[#0a0a0a]">{followers}</b> followers
+            <span className="mx-1.5 text-[#d6d6cc]">·</span>
+            <b className="font-display text-[#0a0a0a]">{followingN}</b> following
+          </div>
+          {isSelf ? (
+            <button
+              onClick={onEdit}
+              className="rounded-full border border-[#e4e4dc] bg-white px-5 py-2.5 text-[14px] font-bold text-[#0a0a0a] transition active:scale-95"
+            >
+              Edit profile
+            </button>
+          ) : (
+            viewerId && (
+              <FollowButton
+                viewerId={viewerId}
+                targetId={profile.id}
+                initialFollowing={isFollowing}
+                onChange={(f) => setFollowers((n) => n + (f ? 1 : -1))}
+              />
+            )
+          )}
+        </div>
 
         {/* Stats */}
         <div className="mt-5 grid grid-cols-3 overflow-hidden rounded-[18px] border border-[#eaeae2] bg-white">
@@ -195,9 +247,7 @@ function PostRow({ r, dim }: { r: Row; dim?: boolean }) {
       </div>
       <span
         className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-          r.role === 'Host'
-            ? 'bg-[#fff1ee] text-[#ff4d2e]'
-            : 'bg-[#f1f1ec] text-[#6e6e66]'
+          r.role === 'Host' ? 'bg-[#fff1ee] text-[#ff4d2e]' : 'bg-[#f1f1ec] text-[#6e6e66]'
         }`}
       >
         {r.role}

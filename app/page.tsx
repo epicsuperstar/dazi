@@ -19,6 +19,8 @@ export default function Home() {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
   const [greeting, setGreeting] = useState('')
+  const [filter, setFilter] = useState<'all' | 'following'>('all')
+  const [followingIds, setFollowingIds] = useState<Set<string>>(new Set())
   const { joined, joining, join } = useJoins(user?.id)
 
   useEffect(() => {
@@ -29,8 +31,18 @@ export default function Home() {
     }
     fetchProfile()
     fetchPosts()
+    fetchFollowing()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading])
+
+  async function fetchFollowing() {
+    if (!user) return
+    const { data } = await supabase
+      .from('follows')
+      .select('following_id')
+      .eq('follower_id', user.id)
+    if (data) setFollowingIds(new Set(data.map((f) => f.following_id)))
+  }
 
   async function fetchProfile() {
     if (!user) return
@@ -67,6 +79,11 @@ export default function Home() {
     .toLocaleDateString('en-US', { weekday: 'long' })
     .toUpperCase()
 
+  const visiblePosts =
+    filter === 'following'
+      ? posts.filter((p) => followingIds.has(p.author_id))
+      : posts
+
   return (
     <div className="min-h-screen bg-[#fafaf7] pb-24">
       <div className="mx-auto w-full max-w-[440px] px-5">
@@ -90,13 +107,32 @@ export default function Home() {
           <p className="mt-2 text-sm font-medium text-[#6e6e66]">
             {greeting ? `Hi, ${greeting}` : 'Welcome back'}
           </p>
+
+          {/* Filter */}
+          <div className="mt-4 inline-flex rounded-full border border-[#eaeae2] bg-white p-1">
+            {(['all', 'following'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded-full px-4 py-1.5 text-[13px] font-bold capitalize transition ${
+                  filter === f ? 'bg-[#ff4d2e] text-white' : 'text-[#8a8a82]'
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </header>
 
-        {posts.length === 0 ? (
-          <EmptyFeed onPost={() => router.push('/post')} />
+        {visiblePosts.length === 0 ? (
+          filter === 'following' ? (
+            <FollowingEmpty onBrowse={() => setFilter('all')} />
+          ) : (
+            <EmptyFeed onPost={() => router.push('/post')} />
+          )
         ) : (
           <div className="mt-2 flex flex-col gap-[14px]">
-            {posts.map((post) => {
+            {visiblePosts.map((post) => {
               const author = authorOf(post)
               return (
                 <ActivityCard
@@ -121,6 +157,26 @@ export default function Home() {
         )}
       </div>
       <TabBar />
+    </div>
+  )
+}
+
+function FollowingEmpty({ onBrowse }: { onBrowse: () => void }) {
+  return (
+    <div className="mt-10 rounded-[22px] border border-[#eaeae2] bg-white px-6 py-14 text-center">
+      <div className="text-3xl">👀</div>
+      <p className="mt-3 font-display text-lg font-bold text-[#0a0a0a]">
+        No activities from people you follow
+      </p>
+      <p className="mt-1 text-sm text-[#8a8a82]">
+        Follow a few people and their plans show up here.
+      </p>
+      <button
+        onClick={onBrowse}
+        className="mt-6 rounded-full bg-[#ff4d2e] px-6 py-3 text-sm font-bold text-white transition active:scale-95"
+      >
+        Browse everything
+      </button>
     </div>
   )
 }
