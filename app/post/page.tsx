@@ -18,6 +18,8 @@ export default function PostPage() {
   const { user } = useAuth()
   const [activity, setActivity] = useState(ACTIVITIES[0].name)
   const [location, setLocation] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [directions, setDirections] = useState('')
   const [startTime, setStartTime] = useState('19:00')
   const [duration, setDuration] = useState('120')
   const [price, setPrice] = useState('')
@@ -44,6 +46,8 @@ export default function PostPage() {
         author_id: user.id,
         activity,
         location,
+        postal_code: postalCode.trim() || null,
+        directions: directions.trim() || null,
         starts_at: startsAt.toISOString(),
         duration_min: parseInt(duration),
         price: price ? parseFloat(price) : null,
@@ -112,10 +116,38 @@ export default function PostPage() {
           <div>
             <Label>Where</Label>
             <Input
-              placeholder="e.g. Central Park, Court 3"
+              placeholder="Venue, e.g. Tiong Bahru CC, Court 2"
               value={location}
               onChange={setLocation}
               required
+            />
+          </div>
+
+          <div>
+            <Label>
+              Postal code{' '}
+              <span className="font-normal text-[#a3a399]">· links to Maps</span>
+            </Label>
+            <Input
+              type="text"
+              placeholder="e.g. 168732"
+              value={postalCode}
+              onChange={setPostalCode}
+            />
+          </div>
+
+          <div>
+            <Label>
+              Getting there{' '}
+              <span className="font-normal text-[#a3a399]">· optional</span>
+            </Label>
+            <textarea
+              value={directions}
+              onChange={(e) => setDirections(e.target.value)}
+              placeholder="Which gate, level, what to bring, where to meet…"
+              rows={3}
+              maxLength={280}
+              className="w-full resize-none rounded-2xl border border-[#e4e4dc] bg-white px-4 py-3.5 text-[15px] text-[#0a0a0a] placeholder-[#a3a399] outline-none transition focus:border-[#ff4d2e]"
             />
           </div>
 

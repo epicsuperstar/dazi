@@ -48,6 +48,50 @@ export function avatarColor(seed: string): string {
   return AVATAR_PALETTE[h % AVATAR_PALETTE.length]
 }
 
+/** A Google Maps link from a Singapore postal code (preferred) or address text. */
+export function mapsUrl(opts: {
+  postal_code?: string | null
+  location?: string | null
+}): string | null {
+  const q = opts.postal_code
+    ? `Singapore ${opts.postal_code}`
+    : (opts.location || '').trim()
+  if (!q.trim()) return null
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
+}
+
+export function normalizeUrl(raw: string): string {
+  const s = raw.trim()
+  if (!s) return ''
+  if (/^https?:\/\//i.test(s)) return s
+  return 'https://' + s.replace(/^\/+/, '')
+}
+
+/** Friendly label for a profile link, inferred from its domain. */
+export function linkLabel(url: string): string {
+  try {
+    const u = new URL(normalizeUrl(url))
+    const host = u.hostname.replace(/^www\./, '')
+    const map: Record<string, string> = {
+      'instagram.com': 'Instagram',
+      'tiktok.com': 'TikTok',
+      't.me': 'Telegram',
+      'telegram.me': 'Telegram',
+      'twitter.com': 'X',
+      'x.com': 'X',
+      'facebook.com': 'Facebook',
+      'linkedin.com': 'LinkedIn',
+      'youtube.com': 'YouTube',
+      'wa.me': 'WhatsApp',
+      'linktr.ee': 'Linktree',
+      'strava.com': 'Strava',
+    }
+    return map[host] || host
+  } catch {
+    return 'Link'
+  }
+}
+
 export function initials(name?: string | null, handle?: string | null): string {
   const src = (name || handle || '?').trim()
   const parts = src.split(/\s+/)

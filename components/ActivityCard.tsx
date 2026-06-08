@@ -1,12 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { activityEmoji, formatPrice, formatTime, relativeDay } from '@/lib/ui'
+import {
+  activityEmoji,
+  formatPrice,
+  formatTime,
+  mapsUrl,
+  relativeDay,
+} from '@/lib/ui'
 
 export type ActivityCardData = {
   id: string
   activity: string
   location: string
+  postal_code?: string | null
+  directions?: string | null
   starts_at: string
   duration_min: number
   price: number | null
@@ -66,11 +74,34 @@ export function ActivityCard({
         </div>
       )}
 
-      <div className="mt-4 mb-4 flex gap-7">
+      <div className="mt-4 mb-3 flex gap-7">
         <Stat k="WHERE" v={data.location.split(',')[0]} />
         <Stat k="WHEN" v={`${relativeDay(data.starts_at)} · ${formatTime(data.starts_at)}`} />
         <Stat k="FOR" v={`${data.duration_min}m`} />
       </div>
+
+      {(() => {
+        const url = mapsUrl({ postal_code: data.postal_code, location: data.location })
+        return url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-2 inline-flex items-center gap-1 text-[13px] font-semibold text-[#ff4d2e]"
+          >
+            📍 Open in Maps ↗
+            {data.postal_code ? (
+              <span className="font-normal text-[#a3a399]">· S{data.postal_code}</span>
+            ) : null}
+          </a>
+        ) : null
+      })()}
+
+      {data.directions && (
+        <p className="mb-3 rounded-xl bg-[#f6f6f1] px-3 py-2 text-[12.5px] leading-relaxed text-[#6e6e66]">
+          🧭 {data.directions}
+        </p>
+      )}
 
       <button
         onClick={onJoin}

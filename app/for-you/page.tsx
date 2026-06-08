@@ -32,6 +32,8 @@ export default function ForYouPage() {
             id: r.id,
             activity: r.activity,
             location: r.location,
+            postal_code: r.postal_code,
+            directions: r.directions,
             starts_at: r.starts_at,
             duration_min: r.duration_min,
             price: r.price,

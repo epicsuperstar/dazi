@@ -4,6 +4,8 @@ export type Post = {
   id: string
   activity: string
   location: string
+  postal_code: string | null
+  directions: string | null
   starts_at: string
   duration_min: number
   price: number | null
@@ -21,5 +23,6 @@ export type Profile = {
   bio: string | null
   instagram: string | null
   tiktok: string | null
+  link: string | null
   avatar_url: string | null
 }

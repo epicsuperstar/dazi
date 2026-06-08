@@ -21,7 +21,7 @@ export default function YouPage() {
     }
     supabase
       .from('profiles')
-      .select('id, name, handle, neighborhood, bio, instagram, tiktok, avatar_url')
+      .select('id, name, handle, neighborhood, bio, instagram, tiktok, link, avatar_url')
       .eq('id', user.id)
       .single()
       .then(({ data }) => setProfile(data as Profile))

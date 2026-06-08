@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Profile } from '@/lib/types'
 import { Avatar } from '@/components/Avatar'
 import { FollowButton } from '@/components/FollowButton'
-import { activityEmoji, formatTime, relativeDay } from '@/lib/ui'
+import { activityEmoji, formatTime, linkLabel, normalizeUrl, relativeDay } from '@/lib/ui'
 
 type Row = {
   id: string
@@ -137,16 +137,23 @@ export function ProfileView({
           <p className="mt-4 text-[15px] leading-relaxed text-[#3a3a36]">{profile.bio}</p>
         )}
 
-        {profile.instagram && (
-          <a
-            href={`https://instagram.com/${profile.instagram}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-block text-[13px] font-semibold text-[#ff4d2e]"
-          >
-            ↗ @{profile.instagram}
-          </a>
-        )}
+        {(() => {
+          const raw =
+            profile.link ||
+            (profile.instagram ? `https://instagram.com/${profile.instagram}` : '')
+          if (!raw) return null
+          const url = normalizeUrl(raw)
+          return (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block text-[13px] font-semibold text-[#ff4d2e]"
+            >
+              ↗ {linkLabel(url)}
+            </a>
+          )
+        })()}
 
         {/* Follow row */}
         <div className="mt-4 flex items-center justify-between">

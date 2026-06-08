@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/useAuth'
+import { normalizeUrl } from '@/lib/ui'
 import { Avatar } from '@/components/Avatar'
 
 export default function EditProfilePage() {
@@ -15,7 +16,7 @@ export default function EditProfilePage() {
   const [handle, setHandle] = useState('')
   const [neighborhood, setNeighborhood] = useState('')
   const [bio, setBio] = useState('')
-  const [instagram, setInstagram] = useState('')
+  const [link, setLink] = useState('')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -30,7 +31,7 @@ export default function EditProfilePage() {
     }
     supabase
       .from('profiles')
-      .select('name, handle, neighborhood, bio, instagram, avatar_url')
+      .select('name, handle, neighborhood, bio, instagram, link, avatar_url')
       .eq('id', user.id)
       .single()
       .then(({ data }) => {
@@ -39,7 +40,10 @@ export default function EditProfilePage() {
           setHandle(data.handle || '')
           setNeighborhood(data.neighborhood || '')
           setBio(data.bio || '')
-          setInstagram(data.instagram || '')
+          setLink(
+            data.link ||
+              (data.instagram ? `https://instagram.com/${data.instagram}` : ''),
+          )
           setAvatarUrl(data.avatar_url || null)
         }
         setReady(true)
@@ -79,7 +83,7 @@ export default function EditProfilePage() {
         handle: handle.trim().replace(/^@/, ''),
         neighborhood: neighborhood.trim() || null,
         bio: bio.trim() || null,
-        instagram: instagram.trim().replace(/^@/, '') || null,
+        link: link.trim() ? normalizeUrl(link) : null,
         avatar_url: avatarUrl,
       })
       .eq('id', user.id)
@@ -174,8 +178,15 @@ export default function EditProfilePage() {
               className="w-full resize-none rounded-2xl border border-[#e4e4dc] bg-white px-4 py-3.5 text-[15px] text-[#0a0a0a] placeholder-[#a3a399] outline-none transition focus:border-[#ff4d2e]"
             />
           </Field>
-          <Field label="Instagram">
-            <Input value={instagram} onChange={setInstagram} placeholder="yourhandle" />
+          <Field label="Your link">
+            <Input
+              value={link}
+              onChange={setLink}
+              placeholder="Instagram, TikTok, Telegram… any link"
+            />
+            <p className="mt-1.5 text-[12px] text-[#a3a399]">
+              Paste any profile or page, e.g. instagram.com/you or t.me/you
+            </p>
           </Field>
 
           <button

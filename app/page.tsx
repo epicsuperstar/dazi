@@ -59,7 +59,7 @@ export default function Home() {
     const { data } = await supabase
       .from('posts')
       .select(
-        `id, activity, location, starts_at, duration_min, price, cap, author_id, status, author:profiles(name, handle)`,
+        `id, activity, location, postal_code, directions, starts_at, duration_min, price, cap, author_id, status, author:profiles(name, handle)`,
       )
       .eq('status', 'upcoming')
       .order('starts_at', { ascending: true })
@@ -141,6 +141,8 @@ export default function Home() {
                     id: post.id,
                     activity: post.activity,
                     location: post.location,
+                    postal_code: post.postal_code,
+                    directions: post.directions,
                     starts_at: post.starts_at,
                     duration_min: post.duration_min,
                     price: post.price,

@@ -25,7 +25,7 @@ export default function UserProfilePage() {
     }
     supabase
       .from('profiles')
-      .select('id, name, handle, neighborhood, bio, instagram, tiktok, avatar_url')
+      .select('id, name, handle, neighborhood, bio, instagram, tiktok, link, avatar_url')
       .eq('handle', handle)
       .maybeSingle()
       .then(({ data }) => {
